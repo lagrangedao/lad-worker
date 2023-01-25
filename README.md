@@ -11,3 +11,7 @@ Please refer to https://kubernetes.io/docs/setup/production-environment/tools/
 pip3 install -r requirements.txt 
 ```
 
+## Start lad-worker
+```
+python3 lad_worker.py
+```
