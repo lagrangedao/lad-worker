@@ -1,3 +1,7 @@
+import datetime
+
+import pytz
+
 from kubernetes import client, config
 
 
@@ -52,6 +56,54 @@ def create_deployment_object(container: Container, label: str):
     )
 
     return deployment
+
+
+def update_deployment(api, deployment, image: str, name: str):
+    # Update container image
+    deployment.spec.template.spec.containers[0].image = image
+
+    # patch the deployment
+    resp = api.patch_namespaced_deployment(
+        name=name, namespace="default", body=deployment
+    )
+
+    print("\n[INFO] deployment's container image updated.\n")
+    print("%s\t%s\t\t\t%s\t%s" % ("NAMESPACE", "NAME", "REVISION", "IMAGE"))
+    print(
+        "%s\t\t%s\t%s\t\t%s\n"
+        % (
+            resp.metadata.namespace,
+            resp.metadata.name,
+            resp.metadata.generation,
+            resp.spec.template.spec.containers[0].image,
+        )
+    )
+
+
+def restart_deployment(api, deployment, name: str):
+    # update `spec.template.metadata` section
+    # to add `kubectl.kubernetes.io/restartedAt` annotation
+    deployment.spec.template.metadata.annotations = {
+        "kubectl.kubernetes.io/restartedAt": datetime.datetime.utcnow()
+        .replace(tzinfo=pytz.UTC)
+        .isoformat()
+    }
+
+    # patch the deployment
+    resp = api.patch_namespaced_deployment(
+        name=name, namespace="default", body=deployment
+    )
+
+    print("\n[INFO] deployment restarted.\n")
+    print("%s\t\t\t%s\t%s" % ("NAME", "REVISION", "RESTARTED-AT"))
+    print(
+        "%s\t%s\t\t%s\n"
+        % (
+            resp.metadata.name,
+            resp.metadata.generation,
+            resp.spec.template.metadata.annotations,
+        )
+    )
 
 
 def create_deployment(api, deployment):
